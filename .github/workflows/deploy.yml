@@ -1,8 +1,8 @@
-name: Deploy to GitHub Pages
+name: Deploy LoLive5 to GitHub Pages
 on:
   push:
     branches: [main]
-  workflow_dispatch: # allows manual deploys too
+  workflow_dispatch:  # allows manual deploy too
 permissions:
   contents: read
   pages: write
@@ -12,10 +12,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Upload files for deployment
+      - name: Upload site files
         uses: actions/upload-pages-artifact@v2
         with:
           path: .
