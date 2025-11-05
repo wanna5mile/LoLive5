@@ -171,11 +171,23 @@
       preview.srcdoc = source;
     }
 
+    // Listen for console output messages from the iframe
     window.addEventListener("message", (e) => {
       if (e.data && e.data.type) logToTerminal(e.data.type, ...e.data.data);
     });
 
+    // Run on button click
     runBtn.addEventListener("click", updatePreview);
+
+    // Run when pressing Enter inside JS field
+    js.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey)) {
+        e.preventDefault();
+        updatePreview();
+      }
+    });
+
+    // Initial load
     window.addEventListener("DOMContentLoaded", updatePreview);
   </script>
 </body>
