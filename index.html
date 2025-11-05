@@ -1,22 +1,136 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>LoLive5</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LoLive5 | HTML Live Playground</title>
   <style>
+    :root {
+      --bg: #0f0f13;
+      --panel: #1c1c22;
+      --text: #e8e8f0;
+      --accent: #4da3ff;
+    }
+
     body {
-      background: #111;
-      color: #fff;
-      font-family: monospace;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      margin: 0;
       height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto 1fr;
+      grid-template-areas:
+        "header header"
+        "editor output";
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Consolas', monospace;
+    }
+
+    header {
+      grid-area: header;
+      padding: 10px 20px;
+      background: var(--panel);
+      border-bottom: 2px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: var(--accent);
+    }
+
+    #editor {
+      grid-area: editor;
+      display: flex;
+      flex-direction: column;
+      background: var(--panel);
+      padding: 10px;
+      overflow: hidden;
+    }
+
+    textarea {
+      flex: 1;
+      background: #111;
+      color: var(--text);
+      border: 1px solid #333;
+      margin: 5px 0;
+      resize: none;
+      padding: 8px;
+      font-size: 14px;
+    }
+
+    #output {
+      grid-area: output;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    button {
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #61b0ff;
     }
   </style>
 </head>
 <body>
-  <h1>welcome to lolive5</h1>
+  <header>
+    <h1>LoLive5 Live HTML/CSS/JS Editor</h1>
+    <button id="runBtn">▶ Run</button>
+  </header>
+
+  <div id="editor">
+    <label>HTML</label>
+    <textarea id="html" placeholder="Write HTML here..."><h1>Hello, world!</h1></textarea>
+
+    <label>CSS</label>
+    <textarea id="css" placeholder="Write CSS here...">body { text-align: center; color: steelblue; }</textarea>
+
+    <label>JavaScript</label>
+    <textarea id="js" placeholder="Write JS here...">console.log('JS running!');</textarea>
+  </div>
+
+  <div id="output">
+    <iframe id="preview"></iframe>
+  </div>
+
+  <script>
+    const runBtn = document.getElementById("runBtn");
+    const html = document.getElementById("html");
+    const css = document.getElementById("css");
+    const js = document.getElementById("js");
+    const preview = document.getElementById("preview");
+
+    function updatePreview() {
+      const source = `
+        <html>
+          <head><style>${css.value}</style></head>
+          <body>
+            ${html.value}
+            <script>${js.value}<\/script>
+          </body>
+        </html>
+      `;
+      preview.srcdoc = source;
+    }
+
+    runBtn.addEventListener("click", updatePreview);
+    window.addEventListener("DOMContentLoaded", updatePreview);
+  </script>
 </body>
 </html>
