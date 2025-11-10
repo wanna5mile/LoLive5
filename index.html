@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LoLive5 | HTML Live Playground</title>
+  <title>LoLive | HTML Live Playground</title>
   <style>
     :root {
       --bg: #0f0f13;
@@ -14,7 +14,6 @@
       --terminal-text: #00ff7f;
       --error-text: #ff5555;
     }
-
     body {
       margin: 0;
       height: 100vh;
@@ -23,9 +22,8 @@
       grid-template-areas: "header" "main" "terminal";
       background: var(--bg);
       color: var(--text);
-      font-family: 'Consolas', monospace;
+      font-family: Consolas, monospace;
     }
-
     header {
       grid-area: header;
       padding: 10px 20px;
@@ -35,11 +33,11 @@
       align-items: center;
       justify-content: space-between;
     }
-
-    h1 { margin: 0; font-size: 1.2rem; color: var(--accent); }
-
-    #main { grid-area: main; display: flex; overflow: hidden; }
-
+    #main {
+      grid-area: main;
+      display: flex;
+      overflow: hidden;
+    }
     #editor {
       flex: 1;
       display: flex;
@@ -51,46 +49,27 @@
       min-width: 200px;
       max-width: 70%;
     }
-
     textarea {
       flex: 1;
       background: #111;
       color: var(--text);
       border: 1px solid #333;
       margin: 5px 0;
-      resize: vertical;
       padding: 8px;
       font-size: 14px;
       width: 100%;
     }
-
     #output {
       flex: 1;
-      background: #fff;
-      overflow: hidden;
       position: relative;
+      background: #fff;
     }
-
-    iframe { width: 100%; height: 100%; border: none; }
-
-    #fullscreenBtn, #newTabBtn {
-      position: absolute;
-      top: 10px;
-      background: var(--accent);
-      color: #000;
+    iframe {
+      width: 100%;
+      height: 100%;
       border: none;
-      padding: 6px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-      z-index: 10;
+      background: white;
     }
-
-    #fullscreenBtn { right: 10px; }
-    #newTabBtn { right: 90px; }
-
-    #fullscreenBtn:hover, #newTabBtn:hover { background: #33ff99; }
-
     #terminal {
       grid-area: terminal;
       background: var(--terminal-bg);
@@ -100,124 +79,115 @@
       overflow-y: auto;
       border-top: 2px solid var(--accent);
     }
-
     .log { color: var(--terminal-text); }
     .warn { color: #ffaa00; }
     .error { color: var(--error-text); }
-
     button {
       background: var(--accent);
-      border: none;
       color: #000;
+      border: none;
       padding: 6px 12px;
       border-radius: 4px;
       cursor: pointer;
       font-weight: bold;
     }
-    button:hover { background: #33ff99; }
   </style>
 </head>
 <body>
   <header>
-    <h1>LoLive5 Live HTML/CSS/JS Editor</h1>
-    <button id="runBtn">▶ Run</button>
+    <h1>LoLive Editor</h1>
+    <div>
+      <button id="runBtn">▶ Run</button>
+      <button id="newTabBtn">🗔 Open in Tab</button>
+    </div>
   </header>
 
   <div id="main">
     <div id="editor">
       <label>HTML</label>
-      <textarea id="html"><h1>Hello, world!</h1></textarea>
+      <textarea id="html"><h1>Hello World!</h1></textarea>
 
       <label>CSS</label>
-      <textarea id="css">body { text-align: center; color: limegreen; }</textarea>
+      <textarea id="css">body { text-align:center; color:limegreen; }</textarea>
 
       <label>JavaScript</label>
-      <textarea id="js">console.log('JS running!');</textarea>
+      <textarea id="js">console.log("It works!");</textarea>
     </div>
 
     <div id="output">
-      <button id="newTabBtn">🗔 New Tab</button>
-      <button id="fullscreenBtn">⛶</button>
       <iframe id="preview"></iframe>
     </div>
   </div>
 
-  <div id="terminal">
-    <strong>&gt; Terminal Output:</strong><br />
-  </div>
+  <div id="terminal"><strong>&gt; Terminal Output:</strong><br /></div>
 
   <script>
-    const runBtn = document.getElementById("runBtn");
     const html = document.getElementById("html");
     const css = document.getElementById("css");
     const js = document.getElementById("js");
     const preview = document.getElementById("preview");
-    const terminal = document.getElementById("terminal");
-    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    const runBtn = document.getElementById("runBtn");
     const newTabBtn = document.getElementById("newTabBtn");
+    const terminal = document.getElementById("terminal");
 
     const keys = { html: "lolive_html", css: "lolive_css", js: "lolive_js" };
 
+    // Load saved values
     window.addEventListener("DOMContentLoaded", () => {
       html.value = localStorage.getItem(keys.html) || html.value;
       css.value = localStorage.getItem(keys.css) || css.value;
       js.value = localStorage.getItem(keys.js) || js.value;
-      updatePreview();
+      runCode();
     });
 
     [html, css, js].forEach(area => {
       area.addEventListener("input", () => {
         localStorage.setItem(keys[area.id], area.value);
-        updatePreview();
+        runCode();
       });
     });
 
-    function logToTerminal(type, ...args) {
-      const line = document.createElement("div");
-      line.className = type;
-      line.textContent = args.join(" ");
-      terminal.appendChild(line);
+    function log(type, msg) {
+      const el = document.createElement("div");
+      el.className = type;
+      el.textContent = msg;
+      terminal.appendChild(el);
       terminal.scrollTop = terminal.scrollHeight;
     }
 
-    function updatePreview() {
+    function runCode() {
       terminal.innerHTML = "<strong>&gt; Terminal Output:</strong><br />";
-      const content = `
+      const combined = `
         <style>${css.value}</style>
         ${html.value}
         <script>
-          window.console.log = (...args) => parent.postMessage({type:'log', data: args}, '*');
-          window.console.warn = (...args) => parent.postMessage({type:'warn', data: args}, '*');
-          window.console.error = (...args) => parent.postMessage({type:'error', data: args}, '*');
-          try { ${js.value} } catch (err) { console.error(err); }
+          console.log = (...args)=>parent.postMessage({type:"log", msg:args.join(" ")}, "*");
+          console.warn = (...args)=>parent.postMessage({type:"warn", msg:args.join(" ")}, "*");
+          console.error = (...args)=>parent.postMessage({type:"error", msg:args.join(" ")}, "*");
+          try { ${js.value} } catch(err){ console.error(err); }
         <\\/script>
       `;
-      preview.srcdoc = content;
+      preview.srcdoc = combined;
     }
 
-    window.addEventListener("message", (e) => {
-      if (e.data && e.data.type) logToTerminal(e.data.type, ...e.data.data);
-    });
+    runBtn.addEventListener("click", runCode);
 
-    runBtn.addEventListener("click", updatePreview);
-
-    fullscreenBtn.addEventListener("click", () => {
-      if (!document.fullscreenElement) preview.requestFullscreen();
-      else document.exitFullscreen();
+    window.addEventListener("message", e => {
+      if (!e.data || !e.data.type) return;
+      log(e.data.type, e.data.msg);
     });
 
     newTabBtn.addEventListener("click", () => {
-      const content = `
+      const win = window.open("", "_blank");
+      win.document.open();
+      win.document.write(`
         <style>${css.value}</style>
         ${html.value}
         <script>
-          try { ${js.value} } catch (e) { console.error(e); }
+          try { ${js.value} } catch(e){ console.error(e); }
         <\\/script>
-      `;
-      const newTab = window.open();
-      newTab.document.open();
-      newTab.document.write(content);
-      newTab.document.close();
+      `);
+      win.document.close();
     });
   </script>
 </body>
