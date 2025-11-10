@@ -178,7 +178,6 @@
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     const newTabBtn = document.getElementById("newTabBtn");
 
-    // --- Local storage keys ---
     const keys = {
       html: "lolive_html",
       css: "lolive_css",
@@ -226,10 +225,8 @@
         <\\/script>
       `;
       const source = `
-        <html>
-          <head><style>${css.value}</style></head>
-          <body>${html.value}${script}</body>
-        </html>
+        <head><style>${css.value}</style></head>
+        <body>${html.value}${script}</body>
       `;
       preview.srcdoc = source;
     }
@@ -253,30 +250,27 @@
 
     // --- Open in new live tab ---
     newTabBtn.addEventListener("click", () => {
-      const newTab = window.open("", "_blank");
-      const code = `
-        <html>
-          <head>
-            <title>LoLive5 Preview</title>
-            <style>${css.value}</style>
-            <script>
-              // Pull latest code from localStorage every reload
-              window.onload = function() {
-                const html = localStorage.getItem('${keys.html}') || '';
-                const css = localStorage.getItem('${keys.css}') || '';
-                const js = localStorage.getItem('${keys.js}') || '';
-                document.body.innerHTML = html;
-                const style = document.createElement('style');
-                style.textContent = css;
-                document.head.appendChild(style);
-                try { eval(js); } catch(e) { console.error(e); }
-              }
-            <\\/script>
-          </head>
-          <body></body>
-        </html>
+      const newTab = window.open();
+      if (!newTab) return alert("Please allow popups to open preview tab.");
+
+      const htmlCode = localStorage.getItem(keys.html) || html.value;
+      const cssCode = localStorage.getItem(keys.css) || css.value;
+      const jsCode = localStorage.getItem(keys.js) || js.value;
+
+      const doc = `
+        <head>
+          <title>LoLive5 Preview</title>
+          <style>${cssCode}</style>
+        </head>
+        <body>
+          ${htmlCode}
+          <script>
+            try { ${jsCode} } catch(e) { console.error(e); }
+          <\\/script>
+        </body>
       `;
-      newTab.document.write(code);
+      newTab.document.open();
+      newTab.document.write(doc);
       newTab.document.close();
     });
   </script>
