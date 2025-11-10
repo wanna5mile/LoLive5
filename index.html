@@ -19,7 +19,7 @@
       margin: 0;
       height: 100vh;
       display: grid;
-      grid-template-rows: auto 1fr 200px;
+      grid-template-rows: auto 1fr auto;
       grid-template-areas:
         "header"
         "main"
@@ -37,12 +37,29 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     h1 {
       margin: 0;
       font-size: 1.2rem;
       color: var(--accent);
+    }
+
+    #controls button {
+      background: var(--accent);
+      border: none;
+      color: #000;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-left: 4px;
+    }
+
+    #controls button:hover {
+      background: #33ff99;
     }
 
     #main {
@@ -63,7 +80,18 @@
       max-width: 70%;
     }
 
-    textarea {
+    .editor-section {
+      margin-bottom: 10px;
+    }
+
+    .editor-section label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .editor-section textarea {
       flex: 1;
       background: #111;
       color: var(--text);
@@ -73,6 +101,11 @@
       padding: 8px;
       font-size: 14px;
       width: 100%;
+      display: block;
+    }
+
+    .collapsed textarea {
+      display: none;
     }
 
     #output {
@@ -80,6 +113,7 @@
       background: #fff;
       overflow: hidden;
       position: relative;
+      color: #000;
     }
 
     iframe {
@@ -88,10 +122,9 @@
       border: none;
     }
 
-    #fullscreenBtn {
+    #fullscreenBtn, #openTabBtn {
       position: absolute;
       top: 10px;
-      right: 10px;
       background: var(--accent);
       color: #000;
       border: none;
@@ -102,7 +135,11 @@
       z-index: 10;
     }
 
-    #fullscreenBtn:hover {
+    #fullscreenBtn { right: 10px; }
+    #openTabBtn { right: 100px; }
+
+    #fullscreenBtn:hover,
+    #openTabBtn:hover {
       background: #33ff99;
     }
 
@@ -110,67 +147,83 @@
       grid-area: terminal;
       background: var(--terminal-bg);
       color: var(--terminal-text);
-      padding: 10px;
       font-size: 14px;
       overflow-y: auto;
       border-top: 2px solid var(--accent);
+      max-height: 0;
+      transition: max-height 0.3s ease;
+    }
+
+    #terminal.open {
+      padding: 10px;
+      max-height: 200px;
+    }
+
+    #terminalToggle {
+      display: block;
+      background: var(--panel);
+      color: var(--accent);
+      text-align: center;
+      cursor: pointer;
+      border-top: 1px solid var(--accent);
+      padding: 5px;
     }
 
     .log { color: var(--terminal-text); }
     .warn { color: #ffaa00; }
     .error { color: var(--error-text); }
-
-    button {
-      background: var(--accent);
-      border: none;
-      color: #000;
-      padding: 6px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    button:hover {
-      background: #33ff99;
-    }
   </style>
 </head>
 <body>
   <header>
-    <h1>LoLive5 Live HTML/CSS/JS Editor</h1>
-    <button id="runBtn">▶ Run</button>
+    <h1>LoLive5 Playground</h1>
+    <div id="controls">
+      <button id="runBtn">▶ Run</button>
+      <button id="downloadBtn">⬇ Download ZIP</button>
+    </div>
   </header>
 
   <div id="main">
     <div id="editor">
-      <label>HTML</label>
-      <textarea id="html"><h1>Hello, world!</h1></textarea>
+      <div class="editor-section" id="htmlSection">
+        <label>HTML <button onclick="toggleSection('htmlSection')">Toggle</button></label>
+        <textarea id="html"><h1>Hello, world!</h1></textarea>
+      </div>
 
-      <label>CSS</label>
-      <textarea id="css">body { text-align: center; color: limegreen; }</textarea>
+      <div class="editor-section" id="cssSection">
+        <label>CSS <button onclick="toggleSection('cssSection')">Toggle</button></label>
+        <textarea id="css">body { background:white; color:black; text-align:center; }</textarea>
+      </div>
 
-      <label>JavaScript</label>
-      <textarea id="js">console.log('JS running!');</textarea>
+      <div class="editor-section" id="jsSection">
+        <label>JavaScript <button onclick="toggleSection('jsSection')">Toggle</button></label>
+        <textarea id="js">console.log('JS running!');</textarea>
+      </div>
     </div>
 
     <div id="output">
+      <button id="openTabBtn">↗ Open Tab</button>
       <button id="fullscreenBtn">⛶</button>
       <iframe id="preview"></iframe>
     </div>
   </div>
 
+  <div id="terminalToggle">Show Terminal ⯈</div>
   <div id="terminal">
     <strong>&gt; Terminal Output:</strong><br />
   </div>
 
   <script>
     const runBtn = document.getElementById("runBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
     const html = document.getElementById("html");
     const css = document.getElementById("css");
     const js = document.getElementById("js");
     const preview = document.getElementById("preview");
     const terminal = document.getElementById("terminal");
+    const terminalToggle = document.getElementById("terminalToggle");
     const fullscreenBtn = document.getElementById("fullscreenBtn");
+    const openTabBtn = document.getElementById("openTabBtn");
 
     // --- Console mirroring ---
     function logToTerminal(type, ...args) {
@@ -181,7 +234,7 @@
       terminal.scrollTop = terminal.scrollHeight;
     }
 
-    // --- Live Preview update ---
+    // --- Live Preview ---
     function updatePreview() {
       terminal.innerHTML = "<strong>&gt; Terminal Output:</strong><br />";
       const script = `
@@ -189,47 +242,81 @@
           window.console.log = (...args) => parent.postMessage({type:'log', data: args}, '*');
           window.console.warn = (...args) => parent.postMessage({type:'warn', data: args}, '*');
           window.console.error = (...args) => parent.postMessage({type:'error', data: args}, '*');
-          try {
-            ${js.value}
-          } catch (err) {
-            console.error(err);
-          }
+          try { ${js.value} } catch (err) { console.error(err); }
         <\\/script>
       `;
       const source = `
         <html>
           <head><style>${css.value}</style></head>
           <body>${html.value}${script}</body>
-        </html>
-      `;
+        </html>`;
       preview.srcdoc = source;
     }
 
-    // --- Handle console logs from iframe ---
     window.addEventListener("message", (e) => {
       if (e.data && e.data.type) logToTerminal(e.data.type, ...e.data.data);
     });
 
-    // --- Auto-update on any input ---
-    [html, css, js].forEach(area => {
-      area.addEventListener("input", () => {
-        updatePreview();
-      });
-    });
-
-    // --- Manual run button ---
+    [html, css, js].forEach(a => a.addEventListener("input", updatePreview));
     runBtn.addEventListener("click", updatePreview);
+
+    // --- Terminal toggle ---
+    terminalToggle.addEventListener("click", () => {
+      terminal.classList.toggle("open");
+      terminalToggle.textContent = terminal.classList.contains("open")
+        ? "Hide Terminal ⯆"
+        : "Show Terminal ⯈";
+    });
 
     // --- Fullscreen toggle ---
     fullscreenBtn.addEventListener("click", () => {
-      if (!document.fullscreenElement) {
-        preview.requestFullscreen().catch(console.error);
+      if (!document.fullscreenElement) preview.requestFullscreen().catch(console.error);
+      else document.exitFullscreen();
+    });
+
+    // --- Open in new tab ---
+    openTabBtn.addEventListener("click", () => {
+      const script = `<script>${js.value}<\\/script>`;
+      const source = `
+        <html>
+          <head><style>${css.value}</style></head>
+          <body>${html.value}${script}</body>
+        </html>`;
+      const blob = new Blob([source], {type: "text/html"});
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    });
+
+    // --- Collapse/expand editor sections ---
+    window.toggleSection = function(id) {
+      document.getElementById(id).classList.toggle("collapsed");
+      updatePreview();
+    };
+
+    // --- Download ZIP ---
+    async function createZip() {
+      const zip = new JSZip();
+      zip.file("index.html", html.value);
+      zip.file("style.css", css.value);
+      zip.file("script.js", js.value);
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "LoLive5_Project.zip";
+      a.click();
+    }
+
+    downloadBtn.addEventListener("click", async () => {
+      if (typeof JSZip === "undefined") {
+        const script = document.createElement("script");
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+        script.onload = createZip;
+        document.body.appendChild(script);
       } else {
-        document.exitFullscreen();
+        createZip();
       }
     });
 
-    // --- Initial load ---
     window.addEventListener("DOMContentLoaded", updatePreview);
   </script>
 </body>
