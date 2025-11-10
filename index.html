@@ -20,10 +20,7 @@
       height: 100vh;
       display: grid;
       grid-template-rows: auto 1fr 200px;
-      grid-template-areas:
-        "header"
-        "main"
-        "terminal";
+      grid-template-areas: "header" "main" "terminal";
       background: var(--bg);
       color: var(--text);
       font-family: 'Consolas', monospace;
@@ -39,17 +36,9 @@
       justify-content: space-between;
     }
 
-    h1 {
-      margin: 0;
-      font-size: 1.2rem;
-      color: var(--accent);
-    }
+    h1 { margin: 0; font-size: 1.2rem; color: var(--accent); }
 
-    #main {
-      grid-area: main;
-      display: flex;
-      overflow: hidden;
-    }
+    #main { grid-area: main; display: flex; overflow: hidden; }
 
     #editor {
       flex: 1;
@@ -82,14 +71,9 @@
       position: relative;
     }
 
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
+    iframe { width: 100%; height: 100%; border: none; }
 
-    #fullscreenBtn,
-    #newTabBtn {
+    #fullscreenBtn, #newTabBtn {
       position: absolute;
       top: 10px;
       background: var(--accent);
@@ -105,10 +89,7 @@
     #fullscreenBtn { right: 10px; }
     #newTabBtn { right: 90px; }
 
-    #fullscreenBtn:hover,
-    #newTabBtn:hover {
-      background: #33ff99;
-    }
+    #fullscreenBtn:hover, #newTabBtn:hover { background: #33ff99; }
 
     #terminal {
       grid-area: terminal;
@@ -133,10 +114,7 @@
       cursor: pointer;
       font-weight: bold;
     }
-
-    button:hover {
-      background: #33ff99;
-    }
+    button:hover { background: #33ff99; }
   </style>
 </head>
 <body>
@@ -178,21 +156,15 @@
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     const newTabBtn = document.getElementById("newTabBtn");
 
-    const keys = {
-      html: "lolive_html",
-      css: "lolive_css",
-      js: "lolive_js"
-    };
+    const keys = { html: "lolive_html", css: "lolive_css", js: "lolive_js" };
 
-    // --- Restore saved code ---
     window.addEventListener("DOMContentLoaded", () => {
-      if (localStorage.getItem(keys.html)) html.value = localStorage.getItem(keys.html);
-      if (localStorage.getItem(keys.css)) css.value = localStorage.getItem(keys.css);
-      if (localStorage.getItem(keys.js)) js.value = localStorage.getItem(keys.js);
+      html.value = localStorage.getItem(keys.html) || html.value;
+      css.value = localStorage.getItem(keys.css) || css.value;
+      js.value = localStorage.getItem(keys.js) || js.value;
       updatePreview();
     });
 
-    // --- Save code to localStorage on input ---
     [html, css, js].forEach(area => {
       area.addEventListener("input", () => {
         localStorage.setItem(keys[area.id], area.value);
@@ -200,7 +172,6 @@
       });
     });
 
-    // --- Console mirroring ---
     function logToTerminal(type, ...args) {
       const line = document.createElement("div");
       line.className = type;
@@ -209,68 +180,43 @@
       terminal.scrollTop = terminal.scrollHeight;
     }
 
-    // --- Live Preview update ---
     function updatePreview() {
       terminal.innerHTML = "<strong>&gt; Terminal Output:</strong><br />";
-      const script = `
+      const content = `
+        <style>${css.value}</style>
+        ${html.value}
         <script>
           window.console.log = (...args) => parent.postMessage({type:'log', data: args}, '*');
           window.console.warn = (...args) => parent.postMessage({type:'warn', data: args}, '*');
           window.console.error = (...args) => parent.postMessage({type:'error', data: args}, '*');
-          try {
-            ${js.value}
-          } catch (err) {
-            console.error(err);
-          }
+          try { ${js.value} } catch (err) { console.error(err); }
         <\\/script>
       `;
-      const source = `
-        <head><style>${css.value}</style></head>
-        <body>${html.value}${script}</body>
-      `;
-      preview.srcdoc = source;
+      preview.srcdoc = content;
     }
 
-    // --- Handle console logs from iframe ---
     window.addEventListener("message", (e) => {
       if (e.data && e.data.type) logToTerminal(e.data.type, ...e.data.data);
     });
 
-    // --- Manual run button ---
     runBtn.addEventListener("click", updatePreview);
 
-    // --- Fullscreen toggle ---
     fullscreenBtn.addEventListener("click", () => {
-      if (!document.fullscreenElement) {
-        preview.requestFullscreen().catch(console.error);
-      } else {
-        document.exitFullscreen();
-      }
+      if (!document.fullscreenElement) preview.requestFullscreen();
+      else document.exitFullscreen();
     });
 
-    // --- Open in new live tab ---
     newTabBtn.addEventListener("click", () => {
-      const newTab = window.open();
-      if (!newTab) return alert("Please allow popups to open preview tab.");
-
-      const htmlCode = localStorage.getItem(keys.html) || html.value;
-      const cssCode = localStorage.getItem(keys.css) || css.value;
-      const jsCode = localStorage.getItem(keys.js) || js.value;
-
-      const doc = `
-        <head>
-          <title>LoLive5 Preview</title>
-          <style>${cssCode}</style>
-        </head>
-        <body>
-          ${htmlCode}
-          <script>
-            try { ${jsCode} } catch(e) { console.error(e); }
-          <\\/script>
-        </body>
+      const content = `
+        <style>${css.value}</style>
+        ${html.value}
+        <script>
+          try { ${js.value} } catch (e) { console.error(e); }
+        <\\/script>
       `;
+      const newTab = window.open();
       newTab.document.open();
-      newTab.document.write(doc);
+      newTab.document.write(content);
       newTab.document.close();
     });
   </script>
